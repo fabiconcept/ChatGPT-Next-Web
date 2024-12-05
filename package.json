@@ -17,7 +17,8 @@
     "prepare": "husky install",
     "proxy-dev": "sh ./scripts/init-proxy.sh && proxychains -f ./scripts/proxychains.conf yarn dev",
     "test": "jest --watch",
-    "test:ci": "jest --ci"
+    "test:ci": "jest --ci",
+    "db:init": "npx tsx app/database/init.ts"
   },
   "dependencies": {
     "@fortaine/fetch-event-source": "^3.0.6",
@@ -27,7 +28,9 @@
     "@vercel/analytics": "^0.1.11",
     "@vercel/speed-insights": "^1.0.2",
     "axios": "^1.7.5",
+    "bcryptjs": "^2.4.3",
     "clsx": "^2.1.1",
+    "dotenv": "^16.3.1",
     "emoji-picker-react": "^4.9.2",
     "fuse.js": "^7.0.0",
     "heic2any": "^0.0.4",
@@ -36,6 +39,7 @@
     "lodash-es": "^4.17.21",
     "markdown-to-txt": "^2.0.1",
     "mermaid": "^10.6.1",
+    "mongoose": "^7.5.0",
     "nanoid": "^5.0.3",
     "next": "^14.1.1",
     "node-fetch": "^3.3.1",
@@ -49,11 +53,11 @@
     "remark-breaks": "^3.0.2",
     "remark-gfm": "^3.0.1",
     "remark-math": "^5.1.1",
+    "rt-client": "https://github.com/Azure-Samples/aoai-realtime-audio-sdk/releases/download/js/v0.5.0/rt-client-0.5.0.tgz",
     "sass": "^1.59.2",
     "spark-md5": "^3.0.2",
     "use-debounce": "^9.0.4",
-    "zustand": "^4.3.8",
-    "rt-client": "https://github.com/Azure-Samples/aoai-realtime-audio-sdk/releases/download/js/v0.5.0/rt-client-0.5.0.tgz"
+    "zustand": "^4.3.8"
   },
   "devDependencies": {
     "@tauri-apps/api": "^1.6.0",
@@ -61,9 +65,11 @@
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.0.1",
+    "@types/bcryptjs": "^2.4.3",
     "@types/jest": "^29.5.14",
     "@types/js-yaml": "4.0.9",
     "@types/lodash-es": "^4.17.12",
+    "@types/mongoose": "^5.11.97",
     "@types/node": "^20.11.30",
     "@types/react": "^18.2.70",
     "@types/react-dom": "^18.2.7",
