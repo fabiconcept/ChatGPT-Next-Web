@@ -1,8 +1,8 @@
 version: "3.9"
 services:
-  chatgpt-next-web:
+  10xai:
     profiles: [ "no-proxy" ]
-    container_name: chatgpt-next-web
+    container_name: 10xai
     image: yidadaa/chatgpt-next-web
     ports:
       - 3000:3000
@@ -18,9 +18,9 @@ services:
       - DISABLE_FAST_LINK=$DISABLE_FAST_LINK
       - OPENAI_SB=$OPENAI_SB
 
-  chatgpt-next-web-proxy:
+  10xai-proxy:
     profiles: [ "proxy" ]
-    container_name: chatgpt-next-web-proxy
+    container_name: 10xai-proxy
     image: yidadaa/chatgpt-next-web
     ports:
       - 3000:3000
