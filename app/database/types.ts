@@ -20,12 +20,21 @@ export interface IUser {
 export interface IAIModel {
   modelType: string;
   version: string;
+  model: string;
+  providerName: string;
   defaultSettings: {
     temperature: number;
     maxTokens: number;
     topP: number;
     frequencyPenalty: number;
     presencePenalty: number;
+    compressMessageLengthThreshold: number;
+    enableInjectSystemPrompts: boolean;
+    template: string;
+    historyMessageCount: number;
+    sendMemory: boolean;
+    compressModel: string;
+    compressProviderName: string;
   };
   isActive: boolean;
   createdAt: Date;
