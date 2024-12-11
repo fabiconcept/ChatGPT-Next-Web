@@ -174,6 +174,12 @@ const cn = {
         Action: "立即清除",
         Confirm: "确认清除所有聊天、设置数据？",
       },
+      Session: {
+        Title: "退出会话",
+        SubTitle: "退出所有聊天和设置会话",
+        Action: "立即退出",
+        Confirm: "确认退出所有聊天和设置会话？",
+      },
     },
     Lang: {
       Name: "Language", // ATTENTION: if you wanna add a new translation, please do not translate this value, leave it as `Language`
