@@ -175,6 +175,13 @@ const en: LocaleType = {
         Action: "Clear",
         Confirm: "Confirm to clear all messages and settings?",
       },
+      Session: {
+        Title: "Log Out",
+        SubTitle: "Log out of all chat and settings sessions",
+        Action: "Log out",
+        Confirm:
+          "Are you sure you want to log out from all chat and settings sessions?",
+      },
     },
     Lang: {
       Name: "Language", // ATTENTION: if you wanna add a new translation, please do not translate this value, leave it as `Language`
