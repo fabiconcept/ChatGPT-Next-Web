@@ -2,9 +2,9 @@ import nodemailer from "nodemailer";
 import twilio from "twilio";
 import { IUser } from "../database/types";
 
-const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID;
-const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN;
-const TWILIO_PHONE_NUMBER = process.env.TWILIO_PHONE_NUMBER;
+const TWILIO_ACCOUNT_SID = process.env.NEXT_PUBLIC_TWILIO_ACCOUNT_SID;
+const TWILIO_AUTH_TOKEN = process.env.NEXT_PUBLIC_TWILIO_AUTH_TOKEN;
+const TWILIO_PHONE_NUMBER = process.env.NEXT_PUBLIC_TWILIO_PHONE_NUMBER;
 
 const twilioClient =
   TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN
@@ -12,12 +12,10 @@ const twilioClient =
     : null;
 
 const emailTransporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: parseInt(process.env.SMTP_PORT || "587"),
-  secure: process.env.SMTP_SECURE === "true",
+  service: "gmail",
   auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
+    user: process.env.NEXT_PUBLIC_SMTP_USER,
+    pass: process.env.NEXT_PUBLIC_SMTP_PASS,
   },
 });
 
@@ -31,7 +29,7 @@ export async function sendEmailOTP(
 ): Promise<boolean> {
   try {
     await emailTransporter.sendMail({
-      from: process.env.SMTP_FROM,
+      from: process.env.NEXT_PUBLIC_SMTP_FROM,
       to: email,
       subject: "Your Login OTP",
       text: `Your OTP is: ${otp}. It will expire in 10 minutes.`,
