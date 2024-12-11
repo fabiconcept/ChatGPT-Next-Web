@@ -86,6 +86,7 @@ import { useMaskStore } from "../store/mask";
 import { ProviderType } from "../utils/cloud";
 import { TTSConfigList } from "./tts-config";
 import { RealtimeConfigList } from "./realtime-chat/realtime-config";
+import { logout } from "../auth/actions/logout";
 
 function EditPromptModal(props: { id: string; onClose: () => void }) {
   const promptStore = usePromptStore();
@@ -272,6 +273,21 @@ function DangerItems() {
           onClick={async () => {
             if (await showConfirm(Locale.Settings.Danger.Clear.Confirm)) {
               chatStore.clearAllData();
+            }
+          }}
+          type="danger"
+        />
+      </ListItem>
+      <ListItem
+        title={Locale.Settings.Danger.Session.Title}
+        subTitle={Locale.Settings.Danger.Session.SubTitle}
+      >
+        <IconButton
+          aria={Locale.Settings.Danger.Session.Title}
+          text={Locale.Settings.Danger.Session.Action}
+          onClick={async () => {
+            if (await showConfirm(Locale.Settings.Danger.Session.Confirm)) {
+              logout();
             }
           }}
           type="danger"
