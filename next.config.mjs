@@ -33,6 +33,9 @@ const nextConfig = {
   experimental: {
     forceSwcTransforms: true,
   },
+  env: {
+    NEXTAUTH_URL: process.env.NEXTAUTH_URL || 'http://localhost:5000',
+  },
 };
 
 const CorsHeaders = [

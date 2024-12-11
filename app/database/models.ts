@@ -9,15 +9,32 @@ import {
 } from "./types";
 
 const userSchema = new mongoose.Schema<IUser>({
-  email: { type: String, required: true, unique: true },
-  phoneNumber: { type: String },
-  passwordHash: { type: String, required: true },
-  name: { type: String, required: true },
+  email: { type: String, sparse: true, unique: true },
+  phoneNumber: { type: String, sparse: true, unique: true },
+  passwordHash: { type: String },
+  name: { type: String },
   createdAt: { type: Date, default: Date.now },
   lastLoginAt: { type: Date },
   isActive: { type: Boolean, default: true },
   loginMethods: [{ type: String }],
+  otp: { type: String },
+  otpExpiry: { type: Date },
+  isVerified: { type: Boolean, default: false },
 });
+
+// Add index to ensure either email or phone is present
+userSchema.index(
+  {
+    email: 1,
+    phoneNumber: 1,
+  },
+  {
+    unique: true,
+    partialFilterExpression: {
+      $or: [{ email: { $exists: true } }, { phoneNumber: { $exists: true } }],
+    },
+  },
+);
 
 const aiModelSchema = new mongoose.Schema<IAIModel>({
   modelType: { type: String, required: true },
@@ -94,20 +111,21 @@ const userSubscriptionSchema = new mongoose.Schema<IUserSubscription>({
   updatedAt: { type: Date, default: Date.now },
 });
 
-export const User = mongoose.model<IUser>(Collections.USERS, userSchema);
-export const AIModel = mongoose.model<IAIModel>(
-  Collections.AI_MODELS,
-  aiModelSchema,
-);
-export const Membership = mongoose.model<IMembership>(
-  Collections.MEMBERSHIPS,
-  membershipSchema,
-);
-export const ChatLog = mongoose.model<IChatLog>(
-  Collections.CHAT_LOGS,
-  chatLogSchema,
-);
-export const UserSubscription = mongoose.model<IUserSubscription>(
-  Collections.USER_SUBSCRIPTIONS,
-  userSubscriptionSchema,
-);
+// Prevent duplicate model compilation
+export const User =
+  mongoose.models.users || mongoose.model<IUser>(Collections.USERS, userSchema);
+export const AIModel =
+  mongoose.models.ai_models ||
+  mongoose.model<IAIModel>(Collections.AI_MODELS, aiModelSchema);
+export const Membership =
+  mongoose.models.memberships ||
+  mongoose.model<IMembership>(Collections.MEMBERSHIPS, membershipSchema);
+export const ChatLog =
+  mongoose.models.chat_logs ||
+  mongoose.model<IChatLog>(Collections.CHAT_LOGS, chatLogSchema);
+export const UserSubscription =
+  mongoose.models.user_subscriptions ||
+  mongoose.model<IUserSubscription>(
+    Collections.USER_SUBSCRIPTIONS,
+    userSubscriptionSchema,
+  );

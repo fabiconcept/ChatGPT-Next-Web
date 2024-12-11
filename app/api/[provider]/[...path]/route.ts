@@ -1,5 +1,5 @@
 import { ApiPath } from "@/app/constant";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { handle as openaiHandler } from "../../openai";
 import { handle as azureHandler } from "../../azure";
 import { handle as googleHandler } from "../../google";
@@ -20,6 +20,13 @@ async function handle(
 ) {
   const apiPath = `/api/${params.provider}`;
   console.log(`[${params.provider} Route] params `, params);
+
+  // Skip proxy for auth-related paths
+  if (params.provider === "auth") {
+    console.log("[Auth Route] Returning empty success response");
+    return new NextResponse(null, { status: 200 });
+  }
+
   switch (apiPath) {
     case ApiPath.Azure:
       return azureHandler(req, { params });

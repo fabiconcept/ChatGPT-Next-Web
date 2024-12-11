@@ -7,14 +7,17 @@ export enum Collections {
 }
 
 export interface IUser {
-  email: string;
+  email?: string;
   phoneNumber?: string;
-  passwordHash: string;
-  name: string;
+  passwordHash?: string;
+  name?: string;
   createdAt: Date;
-  lastLoginAt: Date;
+  lastLoginAt?: Date;
   isActive: boolean;
   loginMethods: string[];
+  otp?: string;
+  otpExpiry?: Date;
+  isVerified: boolean;
 }
 
 export interface IAIModel {
