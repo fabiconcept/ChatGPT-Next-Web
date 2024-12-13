@@ -1,19 +1,20 @@
 import SignInForm from "../components/SignInForm";
+import CanvasComponent from "./canvasComponent";
+import "./signin.css";
 
 export default function SignInPage() {
   return (
-    <div className="min-h-screen bg-gray-100 py-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">
-            Welcome to ChatGPT Next Web
-          </h1>
-          <p className="mt-2 text-gray-600">
-            Sign in or register with your email or phone number
-          </p>
+    <>
+      <CanvasComponent />
+      <div className="signIn-container">
+        <div className="container">
+          <div className="">
+            <h1 className="h1">Welcome to 10XAI</h1>
+            <p className="">Sign up to get free GPT4 / Claude3.5 every day</p>
+          </div>
+          <SignInForm />
         </div>
-        <SignInForm />
       </div>
-    </div>
+    </>
   );
 }

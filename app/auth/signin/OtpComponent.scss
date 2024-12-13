@@ -1,0 +1,54 @@
+// styles.scss
+
+.otp {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 10px;
+  pointer-events: none;
+  opacity: 0.4;
+  filter: grayscale(100%);
+  grid-area: otp;
+  width: 100%;
+
+  &.otp-sent {
+    pointer-events: auto;
+    opacity: 1;
+    filter: none;
+  }
+
+
+  input[type=number] {
+    padding-block: 0.75rem;
+    text-align: center;
+    border: 2px solid;
+    border-color: #bcbcbc;
+    font-size: 2.5rem;
+    border-radius: 0.5rem;
+    outline: none;
+    aspect-ratio: 1/1;
+    background-color: #dfdfdf84;
+    appearance: none;
+    font-weight: 600;
+    -moz-appearance: textfield;
+    /* Firefox */
+
+    &::-webkit-inner-spin-button,
+    &::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      /* Chrome, Safari */
+      margin: 0;
+      /* Remove margin */
+    }
+
+    &:focus {
+      border-color: #5857f1;
+    }
+  }
+
+  &.otp-valid {
+    input {
+    background-color: #ebeaea84;
+    border-color: #02b702;
+    }
+  }
+}
