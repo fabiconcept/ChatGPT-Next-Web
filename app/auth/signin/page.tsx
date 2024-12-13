@@ -1,6 +1,6 @@
 import SignInForm from "../components/SignInForm";
 import CanvasComponent from "./canvasComponent";
-import "./signin.css";
+import "./signin.scss";
 
 export default function SignInPage() {
   return (
