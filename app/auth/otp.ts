@@ -1,7 +1,8 @@
 import nodemailer from "nodemailer";
-import twilio from "twilio";
+// import twilio from "twilio";
 import { IUser } from "../database/types";
 
+/* Twilio Configuration - Commented out
 const TWILIO_ACCOUNT_SID = process.env.NEXT_PUBLIC_TWILIO_ACCOUNT_SID;
 const TWILIO_AUTH_TOKEN = process.env.NEXT_PUBLIC_TWILIO_AUTH_TOKEN;
 const TWILIO_PHONE_NUMBER = process.env.NEXT_PUBLIC_TWILIO_PHONE_NUMBER;
@@ -10,6 +11,7 @@ const twilioClient =
   TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN
     ? twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
     : null;
+*/
 
 const emailTransporter = nodemailer.createTransport({
   service: "gmail",
@@ -46,6 +48,18 @@ export async function sendSMSOTP(
   phoneNumber: string,
   otp: string,
 ): Promise<boolean> {
+  /* To reactivate Twilio SMS:
+   * 1. Uncomment the Twilio import and configuration above
+   * 2. Uncomment this implementation
+   * 3. Set up your Twilio environment variables:
+   *    - NEXT_PUBLIC_TWILIO_ACCOUNT_SID
+   *    - NEXT_PUBLIC_TWILIO_AUTH_TOKEN
+   *    - NEXT_PUBLIC_TWILIO_PHONE_NUMBER
+   */
+  console.log("SMS sending is currently disabled");
+  return false;
+
+  /* Original Twilio Implementation:
   if (!twilioClient) {
     console.error("Twilio client not configured");
     return false;
@@ -62,12 +76,13 @@ export async function sendSMSOTP(
     console.error("Error sending SMS OTP:", error);
     return false;
   }
+  */
 }
 
 export async function verifyOTP(user: IUser, otp: string): Promise<boolean> {
-  console.log("🔍 [OTP Verification] Starting verification process");
-  console.log("📝 [OTP Verification] Input OTP:", otp);
-  console.log("👤 [OTP Verification] User:", {
+  console.log(" [OTP Verification] Starting verification process");
+  console.log(" [OTP Verification] Input OTP:", otp);
+  console.log(" [OTP Verification] User:", {
     id: user.name,
     hasOTP: !!user.otp,
     storedOTP: user.otp,
