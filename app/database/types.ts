@@ -4,6 +4,7 @@ export enum Collections {
   MEMBERSHIPS = "memberships",
   CHAT_LOGS = "chat_logs",
   USER_SUBSCRIPTIONS = "user_subscriptions",
+  USER_SETTINGS = "user_settings",
 }
 
 export interface IUser {
@@ -49,8 +50,7 @@ export interface IMembership {
   description: string;
   price: number;
   features: string[];
-  maxTokensPerMonth: number;
-  maxChatsPerDay: number;
+  maxTokens: number;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -81,6 +81,34 @@ export interface IUserSubscription {
   isActive: boolean;
   tokenUsage: number;
   paymentStatus: "active" | "cancelled" | "expired";
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface IUserSettings {
+  userId: string;
+  submitKey: string;
+  avatar: string;
+  fontSize: number;
+  fontFamily: string;
+  theme: string;
+  tightBorder: boolean;
+  sendPreviewBubble: boolean;
+  enableAutoGenerateTitle: boolean;
+  sidebarWidth: number;
+  enableArtifacts: boolean;
+  enableCodeFold: boolean;
+  disablePromptHint: boolean;
+  dontShowMaskSplashScreen: boolean;
+  hideBuiltinMasks: boolean;
+  ttsConfig: {
+    enable: boolean;
+    autoplay: boolean;
+    engine: string;
+    model: string;
+    voice: string;
+    speed: number;
+  };
   createdAt: Date;
   updatedAt: Date;
 }

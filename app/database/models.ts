@@ -1,11 +1,11 @@
 import mongoose from "mongoose";
 import {
-  Collections,
   IUser,
   IAIModel,
   IMembership,
   IChatLog,
   IUserSubscription,
+  IUserSettings,
 } from "./types";
 
 const userSchema = new mongoose.Schema<IUser>({
@@ -36,6 +36,37 @@ userSchema.index(
   },
 );
 
+const userSettingsSchema = new mongoose.Schema<IUserSettings>({
+  userId: { type: String, required: true, unique: true },
+  submitKey: { type: String, default: "Enter" },
+  avatar: { type: String, default: "1f603" },
+  fontSize: { type: Number, default: 14 },
+  fontFamily: { type: String, default: "" },
+  theme: { type: String, default: "auto" },
+  tightBorder: { type: Boolean, default: false },
+  sendPreviewBubble: { type: Boolean, default: true },
+  enableAutoGenerateTitle: { type: Boolean, default: true },
+  sidebarWidth: { type: Number, default: 300 },
+  enableArtifacts: { type: Boolean, default: true },
+  enableCodeFold: { type: Boolean, default: true },
+  disablePromptHint: { type: Boolean, default: false },
+  dontShowMaskSplashScreen: { type: Boolean, default: false },
+  hideBuiltinMasks: { type: Boolean, default: false },
+  ttsConfig: {
+    enable: { type: Boolean, default: false },
+    autoplay: { type: Boolean, default: false },
+    engine: { type: String, default: "openai" },
+    model: { type: String, default: "tts-1" },
+    voice: { type: String, default: "alloy" },
+    speed: { type: Number, default: 1.0 },
+  },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now },
+});
+
+// Create indexes
+userSettingsSchema.index({ userId: 1 }, { unique: true });
+
 const aiModelSchema = new mongoose.Schema<IAIModel>({
   modelType: { type: String, required: true },
   version: { type: String, required: true },
@@ -49,11 +80,11 @@ const aiModelSchema = new mongoose.Schema<IAIModel>({
     presencePenalty: { type: Number, default: 0 },
     compressMessageLengthThreshold: { type: Number, default: 4000 },
     enableInjectSystemPrompts: { type: Boolean, default: true },
-    template: { type: String, default: "" },
-    historyMessageCount: { type: Number, default: 10 },
+    template: { type: String },
+    historyMessageCount: { type: Number, default: 4 },
     sendMemory: { type: Boolean, default: true },
-    compressModel: { type: String, default: "gpt-3.5-turbo" },
-    compressProviderName: { type: String, default: "openai" },
+    compressModel: { type: String },
+    compressProviderName: { type: String },
   },
   isActive: { type: Boolean, default: true },
   createdAt: { type: Date, default: Date.now },
@@ -62,11 +93,10 @@ const aiModelSchema = new mongoose.Schema<IAIModel>({
 
 const membershipSchema = new mongoose.Schema<IMembership>({
   name: { type: String, required: true },
-  description: { type: String, required: true },
+  description: { type: String },
   price: { type: Number, required: true },
   features: [{ type: String }],
-  maxTokensPerMonth: { type: Number, required: true },
-  maxChatsPerDay: { type: Number, required: true },
+  maxTokens: { type: Number, required: true },
   isActive: { type: Boolean, default: true },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
@@ -105,27 +135,37 @@ const userSubscriptionSchema = new mongoose.Schema<IUserSubscription>({
   paymentStatus: {
     type: String,
     enum: ["active", "cancelled", "expired"],
-    required: true,
+    default: "active",
   },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 });
 
-// Prevent duplicate model compilation
-export const User =
-  mongoose.models.users || mongoose.model<IUser>(Collections.USERS, userSchema);
+// Create and export the models
+export const User = mongoose.models.User || mongoose.model("User", userSchema);
+export const UserSettings =
+  mongoose.models.UserSettings ||
+  mongoose.model("UserSettings", userSettingsSchema);
 export const AIModel =
-  mongoose.models.ai_models ||
-  mongoose.model<IAIModel>(Collections.AI_MODELS, aiModelSchema);
+  mongoose.models.AIModel || mongoose.model("AIModel", aiModelSchema);
 export const Membership =
-  mongoose.models.memberships ||
-  mongoose.model<IMembership>(Collections.MEMBERSHIPS, membershipSchema);
+  mongoose.models.Membership || mongoose.model("Membership", membershipSchema);
 export const ChatLog =
-  mongoose.models.chat_logs ||
-  mongoose.model<IChatLog>(Collections.CHAT_LOGS, chatLogSchema);
+  mongoose.models.ChatLog || mongoose.model("ChatLog", chatLogSchema);
 export const UserSubscription =
-  mongoose.models.user_subscriptions ||
-  mongoose.model<IUserSubscription>(
-    Collections.USER_SUBSCRIPTIONS,
-    userSubscriptionSchema,
-  );
+  mongoose.models.UserSubscription ||
+  mongoose.model("UserSubscription", userSubscriptionSchema);
+
+// Export types
+export type IUser_models = mongoose.InferSchemaType<typeof userSchema>;
+export type IUserSettings_models = mongoose.InferSchemaType<
+  typeof userSettingsSchema
+>;
+export type IAIModel_models = mongoose.InferSchemaType<typeof aiModelSchema>;
+export type IMembership_models = mongoose.InferSchemaType<
+  typeof membershipSchema
+>;
+export type IChatLog_models = mongoose.InferSchemaType<typeof chatLogSchema>;
+export type IUserSubscription_models = mongoose.InferSchemaType<
+  typeof userSubscriptionSchema
+>;
