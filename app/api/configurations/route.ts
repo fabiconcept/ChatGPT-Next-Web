@@ -44,11 +44,38 @@ export async function GET() {
     console.log("[API] Found configurations:", configurations);
 
     if (!configurations || configurations.length === 0) {
-      console.log("[API] No active configurations found");
-      return NextResponse.json(
-        { error: "No active configurations found" },
-        { status: 404 },
+      console.log(
+        "[API] No active configurations found, creating default configuration",
       );
+
+      const defaultConfig = {
+        modelType: "chat",
+        version: "1.0",
+        model: "gpt-3.5-turbo",
+        providerName: "openai",
+        defaultSettings: {
+          temperature: 0.7,
+          maxTokens: 2000,
+          topP: 1,
+          frequencyPenalty: 0,
+          presencePenalty: 0,
+          compressMessageLengthThreshold: 4000,
+          enableInjectSystemPrompts: true,
+          template: "",
+          historyMessageCount: 10,
+          sendMemory: true,
+          compressModel: "gpt-3.5-turbo",
+          compressProviderName: "openai",
+        },
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      const newConfig = await AIModel.create(defaultConfig);
+      console.log("[API] Created default configuration:", newConfig);
+
+      return NextResponse.json([newConfig]);
     }
 
     return NextResponse.json(configurations);
