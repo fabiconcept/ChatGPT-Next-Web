@@ -1,15 +1,19 @@
-import mongoose from "mongoose";
-import {
-  IUser,
-  IAIModel,
-  IMembership,
-  IChatLog,
-  IUserSubscription,
-  IUserSettings,
-  Collections,
-} from "./types";
-
-const userSchema = new mongoose.Schema<IUser>({
+"use strict";
+var __importDefault =
+  (this && this.__importDefault) ||
+  function (mod) {
+    return mod && mod.__esModule ? mod : { default: mod };
+  };
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.UserSubscription =
+  exports.ChatLog =
+  exports.Membership =
+  exports.AIModel =
+  exports.UserSettings =
+  exports.User =
+    void 0;
+const mongoose_1 = __importDefault(require("mongoose"));
+const userSchema = new mongoose_1.default.Schema({
   userId: { type: String, required: true, unique: true },
   email: { type: String, sparse: true, unique: true },
   phoneNumber: { type: String, sparse: true, unique: true },
@@ -23,7 +27,15 @@ const userSchema = new mongoose.Schema<IUser>({
   otpExpiry: { type: Date },
   isVerified: { type: Boolean, default: false },
 });
-
+// Add pre-save middleware to ensure userId is set
+userSchema.pre("save", function (next) {
+  if (!this.userId) {
+    this.userId = `user_${Math.random()
+      .toString(36)
+      .substring(2, 15)}${Math.random().toString(36).substring(2, 15)}`;
+  }
+  next();
+});
 // Add index to ensure either email or phone is present
 userSchema.index(
   {
@@ -37,41 +49,36 @@ userSchema.index(
     },
   },
 );
-
-const userSettingsSchema = new mongoose.Schema<IUserSettings>({
+const userSettingsSchema = new mongoose_1.default.Schema({
   userId: { type: String, required: true, unique: true },
-  settings: {
-    submitKey: { type: String, default: "Enter" },
-    avatar: { type: String, default: "1f603" },
-    fontSize: { type: Number, default: 14 },
-    fontFamily: { type: String, default: "" },
-    theme: { type: String, default: "auto" },
-    tightBorder: { type: Boolean, default: false },
-    sendPreviewBubble: { type: Boolean, default: true },
-    enableAutoGenerateTitle: { type: Boolean, default: true },
-    sidebarWidth: { type: Number, default: 300 },
-    enableArtifacts: { type: Boolean, default: true },
-    enableCodeFold: { type: Boolean, default: true },
-    disablePromptHint: { type: Boolean, default: false },
-    dontShowMaskSplashScreen: { type: Boolean, default: false },
-    hideBuiltinMasks: { type: Boolean, default: false },
-    ttsConfig: {
-      enable: { type: Boolean, default: false },
-      autoplay: { type: Boolean, default: false },
-      engine: { type: String, default: "openai" },
-      model: { type: String, default: "tts-1" },
-      voice: { type: String, default: "alloy" },
-      speed: { type: Number, default: 1.0 },
-    },
+  submitKey: { type: String, default: "Enter" },
+  avatar: { type: String, default: "1f603" },
+  fontSize: { type: Number, default: 14 },
+  fontFamily: { type: String, default: "" },
+  theme: { type: String, default: "auto" },
+  tightBorder: { type: Boolean, default: false },
+  sendPreviewBubble: { type: Boolean, default: true },
+  enableAutoGenerateTitle: { type: Boolean, default: true },
+  sidebarWidth: { type: Number, default: 300 },
+  enableArtifacts: { type: Boolean, default: true },
+  enableCodeFold: { type: Boolean, default: true },
+  disablePromptHint: { type: Boolean, default: false },
+  dontShowMaskSplashScreen: { type: Boolean, default: false },
+  hideBuiltinMasks: { type: Boolean, default: false },
+  ttsConfig: {
+    enable: { type: Boolean, default: false },
+    autoplay: { type: Boolean, default: false },
+    engine: { type: String, default: "openai" },
+    model: { type: String, default: "tts-1" },
+    voice: { type: String, default: "alloy" },
+    speed: { type: Number, default: 1.0 },
   },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 });
-
 // Create indexes
 userSettingsSchema.index({ userId: 1 }, { unique: true });
-
-const aiModelSchema = new mongoose.Schema<IAIModel>({
+const aiModelSchema = new mongoose_1.default.Schema({
   modelType: { type: String, required: true },
   version: { type: String, required: true },
   model: { type: String, required: true },
@@ -94,8 +101,7 @@ const aiModelSchema = new mongoose.Schema<IAIModel>({
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 });
-
-const membershipSchema = new mongoose.Schema<IMembership>({
+const membershipSchema = new mongoose_1.default.Schema({
   name: { type: String, required: true },
   description: { type: String },
   price: { type: Number, required: true },
@@ -105,8 +111,7 @@ const membershipSchema = new mongoose.Schema<IMembership>({
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 });
-
-const chatLogSchema = new mongoose.Schema<IChatLog>({
+const chatLogSchema = new mongoose_1.default.Schema({
   userId: { type: String, required: true },
   modelId: { type: String, required: true },
   messages: [
@@ -128,8 +133,7 @@ const chatLogSchema = new mongoose.Schema<IChatLog>({
   cost: { type: Number, required: true },
   createdAt: { type: Date, default: Date.now },
 });
-
-const userSubscriptionSchema = new mongoose.Schema<IUserSubscription>({
+const userSubscriptionSchema = new mongoose_1.default.Schema({
   userId: { type: String, required: true },
   membershipId: { type: String, required: true },
   startDate: { type: Date, required: true },
@@ -144,36 +148,22 @@ const userSubscriptionSchema = new mongoose.Schema<IUserSubscription>({
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 });
-
 // Create and export the models
-export const User =
-  mongoose.models.User || mongoose.model(Collections.USERS, userSchema);
-export const UserSettings =
-  mongoose.models.UserSettings ||
-  mongoose.model(Collections.USER_SETTINGS, userSettingsSchema);
-export const AIModel =
-  mongoose.models.AIModel ||
-  mongoose.model(Collections.AI_MODELS, aiModelSchema);
-export const Membership =
-  mongoose.models.Membership ||
-  mongoose.model(Collections.MEMBERSHIPS, membershipSchema);
-export const ChatLog =
-  mongoose.models.ChatLog ||
-  mongoose.model(Collections.CHAT_LOGS, chatLogSchema);
-export const UserSubscription =
-  mongoose.models.UserSubscription ||
-  mongoose.model(Collections.USER_SUBSCRIPTIONS, userSubscriptionSchema);
-
-// Export types
-export type IUser_models = mongoose.InferSchemaType<typeof userSchema>;
-export type IUserSettings_models = mongoose.InferSchemaType<
-  typeof userSettingsSchema
->;
-export type IAIModel_models = mongoose.InferSchemaType<typeof aiModelSchema>;
-export type IMembership_models = mongoose.InferSchemaType<
-  typeof membershipSchema
->;
-export type IChatLog_models = mongoose.InferSchemaType<typeof chatLogSchema>;
-export type IUserSubscription_models = mongoose.InferSchemaType<
-  typeof userSubscriptionSchema
->;
+exports.User =
+  mongoose_1.default.models.User ||
+  mongoose_1.default.model("User", userSchema);
+exports.UserSettings =
+  mongoose_1.default.models.UserSettings ||
+  mongoose_1.default.model("UserSettings", userSettingsSchema);
+exports.AIModel =
+  mongoose_1.default.models.AIModel ||
+  mongoose_1.default.model("AIModel", aiModelSchema);
+exports.Membership =
+  mongoose_1.default.models.Membership ||
+  mongoose_1.default.model("Membership", membershipSchema);
+exports.ChatLog =
+  mongoose_1.default.models.ChatLog ||
+  mongoose_1.default.model("ChatLog", chatLogSchema);
+exports.UserSubscription =
+  mongoose_1.default.models.UserSubscription ||
+  mongoose_1.default.model("UserSubscription", userSubscriptionSchema);

@@ -65,6 +65,11 @@ export function createPersistStore<T extends object, M>(
                 ...state,
                 lastUpdateTime: Date.now(),
               });
+              // Save to server after state update if the function exists
+              const currentState = get() as any;
+              if (currentState.saveToServer) {
+                currentState.saveToServer();
+              }
             },
             setHasHydrated: (state: boolean) => {
               set({ _hasHydrated: state } as Partial<T & M & MakeUpdater<T>>);

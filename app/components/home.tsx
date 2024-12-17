@@ -218,6 +218,10 @@ export function useLoadData() {
 
   useEffect(() => {
     (async () => {
+      // Sync user settings with server
+      await config.syncWithServer();
+
+      // Load models
       const models = await api.llm.models();
       config.mergeModels(models);
     })();

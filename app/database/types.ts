@@ -8,6 +8,7 @@ export enum Collections {
 }
 
 export interface IUser {
+  userId: string;
   email?: string;
   phoneNumber?: string;
   passwordHash?: string;
@@ -87,27 +88,29 @@ export interface IUserSubscription {
 
 export interface IUserSettings {
   userId: string;
-  submitKey: string;
-  avatar: string;
-  fontSize: number;
-  fontFamily: string;
-  theme: string;
-  tightBorder: boolean;
-  sendPreviewBubble: boolean;
-  enableAutoGenerateTitle: boolean;
-  sidebarWidth: number;
-  enableArtifacts: boolean;
-  enableCodeFold: boolean;
-  disablePromptHint: boolean;
-  dontShowMaskSplashScreen: boolean;
-  hideBuiltinMasks: boolean;
-  ttsConfig: {
-    enable: boolean;
-    autoplay: boolean;
-    engine: string;
-    model: string;
-    voice: string;
-    speed: number;
+  settings: {
+    submitKey: string;
+    avatar: string;
+    fontSize: number;
+    fontFamily: string;
+    theme: string;
+    tightBorder: boolean;
+    sendPreviewBubble: boolean;
+    enableAutoGenerateTitle: boolean;
+    sidebarWidth: number;
+    enableArtifacts: boolean;
+    enableCodeFold: boolean;
+    disablePromptHint: boolean;
+    dontShowMaskSplashScreen: boolean;
+    hideBuiltinMasks: boolean;
+    ttsConfig: {
+      enable: boolean;
+      autoplay: boolean;
+      engine: string;
+      model: string;
+      voice: string;
+      speed: number;
+    };
   };
   createdAt: Date;
   updatedAt: Date;

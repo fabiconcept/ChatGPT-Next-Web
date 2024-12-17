@@ -1,6 +1,15 @@
 import { LLMModel } from "../client/api";
 import { DalleSize, DalleQuality, DalleStyle } from "../typing";
 import { getClientConfig } from "../config/client";
+import { getSession } from "next-auth/react";
+import { debug } from "../utils/debug";
+
+const log = {
+  sync: debug("app:config:sync"),
+  storage: debug("app:config:storage"),
+  state: debug("app:config:state"),
+};
+
 import {
   DEFAULT_INPUT_TEMPLATE,
   DEFAULT_MODELS,
@@ -40,6 +49,9 @@ const config = getClientConfig();
 
 export const DEFAULT_CONFIG = {
   lastUpdate: Date.now(), // timestamp, to merge state
+  lastSyncTime: 0, // timestamp of last successful sync
+  syncStatus: "idle" as "idle" | "syncing" | "error",
+  syncError: null as string | null,
 
   submitKey: SubmitKey.Enter,
   avatar: "1f603",
@@ -164,8 +176,193 @@ export const ModalConfigValidator = {
 export const useAppConfig = createPersistStore(
   { ...DEFAULT_CONFIG },
   (set, get) => ({
-    reset() {
+    async reset() {
+      log.state("Resetting config to defaults");
       set(() => ({ ...DEFAULT_CONFIG }));
+
+      // Reset settings in the database
+      const session = await getSession();
+      if (session?.user?.id) {
+        try {
+          log.state("Resetting settings in database");
+          const defaultSettings = {
+            ...DEFAULT_CONFIG,
+            lastUpdateTime: Date.now(),
+          };
+
+          const response = await fetch("/api/user-settings", {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              "user-id": session.user.id,
+            },
+            body: JSON.stringify(defaultSettings),
+          });
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(
+              `Failed to reset settings: ${response.status} ${response.statusText}\n${errorText}`,
+            );
+          }
+
+          log.state("Settings reset successfully in database");
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : "Unknown error";
+          log.state("Failed to reset settings in database:", errorMessage);
+          console.error("Failed to reset settings in database:", error);
+          // Still throw the error to notify the user
+          throw error;
+        }
+      }
+    },
+
+    async syncWithServer() {
+      log.sync("Starting syncWithServer");
+      const session = await getSession();
+      log.sync("Session state:", {
+        hasSession: !!session,
+        userId: session?.user?.id,
+        user: session?.user,
+      });
+
+      if (!session?.user?.id) {
+        log.sync("No user session found, aborting sync");
+        return;
+      }
+
+      try {
+        log.sync("Setting sync status to syncing");
+        set({ syncStatus: "syncing", syncError: null });
+
+        log.sync("Fetching settings from server");
+        const response = await fetch("/api/user-settings", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "user-id": session.user.id,
+          },
+        });
+
+        log.sync("Server response status:", response.status);
+        if (!response.ok) {
+          throw new Error(
+            `Failed to fetch settings: ${response.status} ${response.statusText}`,
+          );
+        }
+
+        const data = await response.json();
+        log.sync("Received settings from server:", data);
+        log.sync("Received settings from server:", data.data.userId);
+
+        if (data.data.userId) {
+          log.sync("Updating local state with server settings");
+          const newState = {
+            ...data.data,
+            lastSyncTime: Date.now(),
+            syncStatus: "idle",
+            syncError: null,
+          };
+          log.state("New state:", newState);
+          set(newState);
+        } else {
+          log.sync("No settings found in server response");
+        }
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : "Unknown error";
+        log.sync("Sync error:", errorMessage, error);
+        console.error("Failed to sync settings:", error);
+        set({
+          syncStatus: "error",
+          syncError: errorMessage,
+        });
+      }
+    },
+
+    async saveToServer() {
+      log.sync("Starting saveToServer");
+      const session = await getSession();
+      log.sync("Session state:", {
+        hasSession: !!session,
+        userId: session?.user?.id,
+        user: session?.user,
+      });
+
+      if (!session?.user?.id) {
+        log.sync("No user session found, aborting save");
+        return;
+      }
+
+      const currentState = get();
+      const settings = {
+        submitKey: currentState.submitKey,
+        avatar: currentState.avatar,
+        fontSize: currentState.fontSize,
+        fontFamily: currentState.fontFamily,
+        theme: currentState.theme,
+        tightBorder: currentState.tightBorder,
+        sendPreviewBubble: currentState.sendPreviewBubble,
+        enableAutoGenerateTitle: currentState.enableAutoGenerateTitle,
+        sidebarWidth: currentState.sidebarWidth,
+        enableArtifacts: currentState.enableArtifacts,
+        enableCodeFold: currentState.enableCodeFold,
+        disablePromptHint: currentState.disablePromptHint,
+        dontShowMaskSplashScreen: currentState.dontShowMaskSplashScreen,
+        hideBuiltinMasks: currentState.hideBuiltinMasks,
+        ttsConfig: currentState.ttsConfig,
+        modelConfig: currentState.modelConfig,
+        realtimeConfig: currentState.realtimeConfig,
+        customModels: currentState.customModels,
+        lastUpdateTime: Date.now(),
+      };
+
+      log.sync("Preparing to save settings:", settings);
+
+      try {
+        log.sync("Setting sync status to syncing");
+        set({ syncStatus: "syncing", syncError: null });
+
+        log.sync("Sending settings to server");
+        const response = await fetch("/api/user-settings", {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            "user-id": session.user.id,
+          },
+          body: JSON.stringify(settings),
+        });
+
+        log.sync("Server response status:", response.status);
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(
+            `Failed to save settings: ${response.status} ${response.statusText}\n${errorText}`,
+          );
+        }
+
+        const data = await response.json();
+        log.sync("Settings saved successfully", data);
+
+        set({
+          lastSyncTime: Date.now(),
+          syncStatus: "idle",
+          syncError: null,
+        });
+
+        return data;
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : "Unknown error";
+        log.sync("Save error:", errorMessage, error);
+        console.error("Failed to save settings:", error);
+        set({
+          syncStatus: "error",
+          syncError: errorMessage,
+        });
+        throw error; // Re-throw to let callers handle the error
+      }
     },
 
     mergeModels(newModels: LLMModel[]) {
@@ -195,7 +392,28 @@ export const useAppConfig = createPersistStore(
   }),
   {
     name: StoreKey.Config,
-    version: 4.1,
+    version: 4.2,
+    onRehydrateStorage: () => async (state) => {
+      if (!state) {
+        log.storage("No state found during rehydration");
+        return;
+      }
+
+      log.storage("Starting storage rehydration");
+      const session = await getSession();
+      log.storage("Session state:", {
+        hasSession: !!session,
+        userId: session?.user?.id,
+        user: session?.user,
+      });
+
+      if (session?.user?.id) {
+        log.storage("User session found, initiating sync");
+        state.syncWithServer();
+      } else {
+        log.storage("No user session found, skipping sync");
+      }
+    },
 
     merge(persistedState, currentState) {
       const state = persistedState as ChatConfig | undefined;
