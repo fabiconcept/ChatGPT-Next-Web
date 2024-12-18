@@ -20,6 +20,8 @@ export interface IUser {
   otp?: string;
   otpExpiry?: Date;
   isVerified: boolean;
+  userType: "user" | "admin";
+  subscriptionType?: string; // References membershipId
 }
 
 export interface IAIModel {
@@ -47,6 +49,7 @@ export interface IAIModel {
 }
 
 export interface IMembership {
+  membershipId: string;
   name: string;
   description: string;
   price: number;

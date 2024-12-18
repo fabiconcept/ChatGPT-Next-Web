@@ -22,6 +22,13 @@ const userSchema = new mongoose.Schema<IUser>({
   otp: { type: String },
   otpExpiry: { type: Date },
   isVerified: { type: Boolean, default: false },
+  userType: {
+    type: String,
+    enum: ["user", "admin"],
+    default: "user",
+    required: true,
+  },
+  subscriptionType: { type: String, ref: Collections.MEMBERSHIPS },
 });
 
 // Add index to ensure either email or phone is present
@@ -96,8 +103,9 @@ const aiModelSchema = new mongoose.Schema<IAIModel>({
 });
 
 const membershipSchema = new mongoose.Schema<IMembership>({
+  membershipId: { type: String, required: true, unique: true },
   name: { type: String, required: true },
-  description: { type: String },
+  description: { type: String, required: true },
   price: { type: Number, required: true },
   features: [{ type: String }],
   maxTokens: { type: Number, required: true },
@@ -105,6 +113,9 @@ const membershipSchema = new mongoose.Schema<IMembership>({
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 });
+
+// Add index for membershipId
+membershipSchema.index({ membershipId: 1 }, { unique: true });
 
 const chatLogSchema = new mongoose.Schema<IChatLog>({
   userId: { type: String, required: true },
