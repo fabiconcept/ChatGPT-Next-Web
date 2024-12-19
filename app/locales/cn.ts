@@ -829,6 +829,9 @@ const cn = {
     GenerateParams: "生成参数",
     Detail: "详情",
   },
+  Playground: {
+    Title: "API 操场",
+  },
 };
 
 type DeepPartial<T> = T extends object

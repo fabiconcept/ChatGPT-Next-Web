@@ -840,6 +840,9 @@ const en: LocaleType = {
     GenerateParams: "Generate Params",
     Detail: "Detail",
   },
+  Playground: {
+    Title: "API Playground",
+  },
 };
 
 export default en;

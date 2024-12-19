@@ -1,0 +1,139 @@
+.container {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  margin-bottom: 20px;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: bold;
+  color: var(--primary);
+}
+
+.content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  height: calc(100vh - 100px);
+}
+
+.inputSection {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.urlContainer {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.methodSelect {
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border-in-light);
+  background-color: var(--white);
+  color: var(--black);
+  font-size: 14px;
+  outline: none;
+
+  &:focus {
+    border-color: var(--primary);
+  }
+}
+
+.urlInput {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border-in-light);
+  background-color: var(--white);
+  color: var(--black);
+  font-size: 14px;
+  outline: none;
+
+  &:focus {
+    border-color: var(--primary);
+  }
+}
+
+.sendButton {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: none;
+  background-color: var(--primary);
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+  transition: opacity 0.3s ease;
+
+  &:hover {
+    opacity: 0.8;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.bodyContainer {
+  margin-top: 10px;
+}
+
+.bodyInput {
+  width: 100%;
+  height: 150px;
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border-in-light);
+  background-color: var(--white);
+  color: var(--black);
+  font-size: 14px;
+  font-family: monospace;
+  resize: vertical;
+  outline: none;
+
+  &:focus {
+    border-color: var(--primary);
+  }
+}
+
+.responseSection {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 200px;
+}
+
+.error {
+  padding: 12px;
+  border-radius: 6px;
+  background-color: var(--error-bg);
+  color: var(--error);
+  font-size: 14px;
+}
+
+.response {
+  flex: 1;
+  padding: 16px;
+  border-radius: 6px;
+  border: 1px solid var(--border-in-light);
+  background-color: var(--white);
+  color: var(--black);
+  font-size: 14px;
+  font-family: monospace;
+  overflow: auto;
+  white-space: pre-wrap;
+  margin: 0;
+}
