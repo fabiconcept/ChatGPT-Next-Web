@@ -61,12 +61,28 @@ export interface IMembership {
 }
 
 export interface IChatLog {
+  chatId: string; // Unique identifier for the chat
   userId: string;
   modelId: string;
   messages: Array<{
+    id: string;
     role: "user" | "assistant" | "system";
     content: string;
     timestamp: Date;
+    isError?: boolean;
+    tools?: Array<{
+      id: string;
+      index?: number;
+      type?: string;
+      function?: {
+        name: string;
+        arguments?: string;
+      };
+      content?: string;
+      isError?: boolean;
+      errorMsg?: string;
+    }>;
+    audio_url?: string;
   }>;
   tokenUsage: {
     promptTokens: number;

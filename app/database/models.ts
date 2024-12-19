@@ -3,7 +3,6 @@ import {
   IUser,
   IAIModel,
   IMembership,
-  IChatLog,
   IUserSubscription,
   IUserSettings,
   Collections,
@@ -117,29 +116,6 @@ const membershipSchema = new mongoose.Schema<IMembership>({
 // Add index for membershipId
 membershipSchema.index({ membershipId: 1 }, { unique: true });
 
-const chatLogSchema = new mongoose.Schema<IChatLog>({
-  userId: { type: String, required: true },
-  modelId: { type: String, required: true },
-  messages: [
-    {
-      role: {
-        type: String,
-        enum: ["user", "assistant", "system"],
-        required: true,
-      },
-      content: { type: String, required: true },
-      timestamp: { type: Date, default: Date.now },
-    },
-  ],
-  tokenUsage: {
-    promptTokens: { type: Number, required: true },
-    completionTokens: { type: Number, required: true },
-    totalTokens: { type: Number, required: true },
-  },
-  cost: { type: Number, required: true },
-  createdAt: { type: Date, default: Date.now },
-});
-
 const userSubscriptionSchema = new mongoose.Schema<IUserSubscription>({
   userId: { type: String, required: true },
   membershipId: { type: String, required: true },
@@ -158,22 +134,36 @@ const userSubscriptionSchema = new mongoose.Schema<IUserSubscription>({
 
 // Create and export the models
 export const User =
-  mongoose.models.User || mongoose.model(Collections.USERS, userSchema);
+  mongoose.models.User ||
+  mongoose.model(Collections.USERS, userSchema, Collections.USERS);
+
 export const UserSettings =
   mongoose.models.UserSettings ||
-  mongoose.model(Collections.USER_SETTINGS, userSettingsSchema);
+  mongoose.model(
+    Collections.USER_SETTINGS,
+    userSettingsSchema,
+    Collections.USER_SETTINGS,
+  );
+
 export const AIModel =
   mongoose.models.AIModel ||
-  mongoose.model(Collections.AI_MODELS, aiModelSchema);
+  mongoose.model(Collections.AI_MODELS, aiModelSchema, Collections.AI_MODELS);
+
 export const Membership =
   mongoose.models.Membership ||
-  mongoose.model(Collections.MEMBERSHIPS, membershipSchema);
-export const ChatLog =
-  mongoose.models.ChatLog ||
-  mongoose.model(Collections.CHAT_LOGS, chatLogSchema);
+  mongoose.model(
+    Collections.MEMBERSHIPS,
+    membershipSchema,
+    Collections.MEMBERSHIPS,
+  );
+
 export const UserSubscription =
   mongoose.models.UserSubscription ||
-  mongoose.model(Collections.USER_SUBSCRIPTIONS, userSubscriptionSchema);
+  mongoose.model(
+    Collections.USER_SUBSCRIPTIONS,
+    userSubscriptionSchema,
+    Collections.USER_SUBSCRIPTIONS,
+  );
 
 // Export types
 export type IUser_models = mongoose.InferSchemaType<typeof userSchema>;
@@ -184,7 +174,6 @@ export type IAIModel_models = mongoose.InferSchemaType<typeof aiModelSchema>;
 export type IMembership_models = mongoose.InferSchemaType<
   typeof membershipSchema
 >;
-export type IChatLog_models = mongoose.InferSchemaType<typeof chatLogSchema>;
 export type IUserSubscription_models = mongoose.InferSchemaType<
   typeof userSubscriptionSchema
 >;
