@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/app/database/config";
-import { ChatLog } from "@/app/database/models";
+import { nanoid } from "nanoid";
+import { DebugChatLog } from "@/app/database/models/chatLogs";
 
 // GET /api/chat-logs
 export async function GET(req: NextRequest) {
@@ -23,14 +24,74 @@ export async function GET(req: NextRequest) {
     const limit = parseInt(url.searchParams.get("limit") || "50");
     const offset = parseInt(url.searchParams.get("offset") || "0");
 
+    console.log("[API] Model Info:", {
+      modelName: DebugChatLog.modelName,
+      type: typeof DebugChatLog,
+      collectionName: DebugChatLog.collection.name,
+      schema: {
+        paths: Object.keys(DebugChatLog.schema.paths),
+        definition: DebugChatLog.schema.obj,
+      },
+      db: DebugChatLog.db.name,
+    });
+
     // Get chat logs for the user
-    const chatLogs = await ChatLog.find({ userId })
+    let chatLogs = await DebugChatLog.find({ userId })
+      .select("chatId userId modelId messages tokenUsage cost createdAt")
       .sort({ createdAt: -1 })
       .skip(offset)
       .limit(limit);
 
+    // If no chat logs exist, create a default one
+    if (chatLogs.length === 0 && offset === 0) {
+      console.log("[API] No chat logs found, creating default chat log");
+      const chatId = nanoid();
+      console.log("[API] Generated chatId:", chatId);
+
+      const defaultChatLog = new DebugChatLog({
+        chatId,
+        userId,
+        modelId: "gpt-3.5-turbo", // Default model
+        messages: [],
+        tokenUsage: {
+          promptTokens: 0,
+          completionTokens: 0,
+          totalTokens: 0,
+        },
+        cost: 0,
+        createdAt: new Date(),
+      });
+
+      console.log(
+        "[API] Default chat log:",
+        JSON.stringify(defaultChatLog.toJSON(), null, 2),
+      );
+
+      console.log(
+        "[API] Default chat log before save:",
+        JSON.stringify(defaultChatLog.toJSON(), null, 2),
+      );
+
+      // Ensure chatId exists
+      if (!defaultChatLog.chatId) {
+        defaultChatLog.chatId = chatId;
+      }
+
+      console.log(
+        "[API] Default chat log after save:",
+        JSON.stringify(defaultChatLog.toJSON(), null, 2),
+      );
+
+      const savedChatLog = await defaultChatLog.save();
+      console.log(
+        "[API] Saved chat log:",
+        JSON.stringify(savedChatLog.toJSON(), null, 2),
+      );
+      chatLogs = [savedChatLog];
+    }
+
     // Get total count for pagination
-    const total = await ChatLog.countDocuments({ userId });
+    const total = await DebugChatLog.countDocuments({ userId });
 
     console.log(`[API] Found ${chatLogs.length} chat logs for user ${userId}`);
 
@@ -69,11 +130,17 @@ export async function POST(req: NextRequest) {
     await connectDB();
     console.log("[API] Database connected successfully");
 
-    const chatLog = new ChatLog({
+    const chatLog = new DebugChatLog({
       ...body,
+      chatId: body.id || nanoid(), // Use the frontend's id as chatId, or generate new one
       userId,
       createdAt: new Date(),
     });
+
+    // Remove id field if it exists in body
+    if (chatLog.id) {
+      delete chatLog.id;
+    }
 
     await chatLog.save();
     console.log(`[API] Chat log saved successfully for user ${userId}`);
@@ -88,7 +155,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// DELETE /api/chat-logs
+// DELETE /api/chat-logs (delete all chat logs for a user)
 export async function DELETE(req: NextRequest) {
   console.log("[API] DELETE /api/chat-logs - Starting request");
   try {
@@ -100,35 +167,20 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
-    const url = new URL(req.url);
-    const id = url.searchParams.get("id");
-
-    if (!id) {
-      return NextResponse.json(
-        { error: "Missing chat log ID" },
-        { status: 400 },
-      );
-    }
-
     console.log("[API] Attempting database connection...");
     await connectDB();
     console.log("[API] Database connected successfully");
 
-    const result = await ChatLog.deleteOne({ _id: id, userId });
+    const result = await DebugChatLog.deleteMany({ userId });
+    console.log(
+      `[API] Deleted ${result.deletedCount} chat logs for user ${userId}`,
+    );
 
-    if (result.deletedCount === 0) {
-      return NextResponse.json(
-        { error: "Chat log not found or unauthorized" },
-        { status: 404 },
-      );
-    }
-
-    console.log(`[API] Chat log ${id} deleted successfully for user ${userId}`);
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("[API] Error deleting chat log:", error);
+    console.error("[API] Error deleting chat logs:", error);
     return NextResponse.json(
-      { error: "Failed to delete chat log" },
+      { error: "Failed to delete chat logs" },
       { status: 500 },
     );
   }
