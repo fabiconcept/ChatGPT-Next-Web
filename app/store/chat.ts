@@ -398,8 +398,45 @@ export const useChatStore = createPersistStore(
           Locale.Home.DeleteToast,
           {
             text: Locale.Home.Revert,
-            onClick() {
+            async onClick() {
               set(() => restoreState);
+
+              // Restore chat log in database
+              try {
+                const authSession = await getSession();
+                if (authSession?.user?.id) {
+                  console.log(
+                    "[Chat] Restoring chat log in database:",
+                    deletedSession.id,
+                  );
+                  await fetch("/api/chat-logs", {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                      "user-id": authSession.user.id,
+                    },
+                    body: JSON.stringify({
+                      chatId: deletedSession.id,
+                      modelId: deletedSession.mask.modelConfig.model,
+                      messages: deletedSession.messages,
+                      tokenUsage: {
+                        promptTokens: deletedSession.stat.tokenCount,
+                        completionTokens: 0,
+                        totalTokens: deletedSession.stat.tokenCount,
+                      },
+                      cost: 0,
+                    }),
+                  });
+                  console.log(
+                    "[Chat] Successfully restored chat log in database",
+                  );
+                }
+              } catch (e) {
+                console.error(
+                  "[Chat] Failed to restore chat log in database:",
+                  e,
+                );
+              }
             },
           },
           5000,
