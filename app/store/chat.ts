@@ -608,6 +608,8 @@ export const useChatStore = createPersistStore(
         if (!message) return;
 
         updater(message);
+        set(() => ({ sessions }));
+        // Sync changes to server after updating message
         get().syncChatToServer(session);
       },
 
@@ -768,9 +770,12 @@ export const useChatStore = createPersistStore(
       ) {
         const sessions = get().sessions;
         const index = sessions.findIndex((s) => s.id === targetSession.id);
-        if (index < 0) return;
-        updater(sessions[index]);
-        set(() => ({ sessions }));
+        if (index !== -1) {
+          updater(sessions[index]);
+          set(() => ({ sessions }));
+          // Sync changes to server after updating session
+          get().syncChatToServer(sessions[index]);
+        }
       },
       async clearAllData() {
         await indexedDBStorage.clear();
