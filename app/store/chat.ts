@@ -267,7 +267,7 @@ export const useChatStore = createPersistStore(
         });
       },
 
-      newSession(mask?: Mask) {
+      async newSession(mask?: Mask) {
         const session = createEmptySession();
 
         if (mask) {
@@ -284,10 +284,56 @@ export const useChatStore = createPersistStore(
           session.topic = mask.name;
         }
 
+        // Create new chat log in database
+        try {
+          const authSession = await getSession();
+          if (authSession?.user?.id) {
+            console.log("[Chat] Creating new chat log in database");
+
+            await fetch("/api/chat-logs", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "user-id": authSession.user.id,
+              },
+              body: JSON.stringify({
+                chatId: session.id,
+                modelId: session.mask.modelConfig.model,
+                messages: session.messages,
+                tokenUsage: {
+                  promptTokens: session.stat.tokenCount,
+                  completionTokens: 0,
+                  totalTokens: session.stat.tokenCount,
+                },
+                cost: 0,
+              }),
+            });
+
+            console.log("[Chat] Created new chat log in database", {
+              chatId: session.id,
+              modelId: session.mask.modelConfig.model,
+              messages: session.messages,
+              tokenUsage: {
+                promptTokens: session.stat.tokenCount,
+                completionTokens: 0,
+                totalTokens: session.stat.tokenCount,
+              },
+              cost: 0,
+            });
+          }
+        } catch (e) {
+          console.error("[Chat] Failed to create chat log:", {
+            error: e instanceof Error ? e.message : e,
+            sessionId: session.id,
+          });
+        }
+
         set((state) => ({
           currentSessionIndex: 0,
           sessions: [session].concat(state.sessions),
         }));
+
+        return session;
       },
 
       nextSession(delta: number) {

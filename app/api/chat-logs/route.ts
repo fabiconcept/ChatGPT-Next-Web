@@ -130,12 +130,19 @@ export async function POST(req: NextRequest) {
     await connectDB();
     console.log("[API] Database connected successfully");
 
+    console.log("Payload:", JSON.stringify(body, null, 2));
+
     const chatLog = new DebugChatLog({
       ...body,
-      chatId: body.id || nanoid(), // Use the frontend's id as chatId, or generate new one
+      chatId: body.chatId || nanoid(), // Use the frontend's id as chatId, or generate new one
       userId,
       createdAt: new Date(),
     });
+
+    console.log(
+      "[API] Chat log before save:",
+      JSON.stringify(chatLog.toJSON(), null, 2),
+    );
 
     // Remove id field if it exists in body
     if (chatLog.id) {
