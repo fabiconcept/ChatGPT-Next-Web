@@ -89,8 +89,8 @@ export function NewChat() {
   const { state } = useLocation();
 
   const startChat = (mask?: Mask) => {
-    setTimeout(() => {
-      chatStore.newSession(mask);
+    setTimeout(async () => {
+      await chatStore.newSession(mask);
       navigate(Path.Chat);
     }, 10);
   };

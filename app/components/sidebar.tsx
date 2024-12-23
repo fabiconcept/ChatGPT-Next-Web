@@ -321,9 +321,9 @@ export function SideBar(props: { className?: string }) {
           <IconButton
             icon={<AddIcon />}
             text={shouldNarrow ? undefined : Locale.Home.NewChat}
-            onClick={() => {
+            onClick={async () => {
               if (config.dontShowMaskSplashScreen) {
-                chatStore.newSession();
+                await chatStore.newSession();
                 navigate(Path.Chat);
               } else {
                 navigate(Path.NewChat);
