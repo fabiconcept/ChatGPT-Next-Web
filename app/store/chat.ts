@@ -343,11 +343,31 @@ export const useChatStore = createPersistStore(
         get().selectSession(limit(i + delta));
       },
 
-      deleteSession(index: number) {
+      async deleteSession(index: number) {
         const deletingLastSession = get().sessions.length === 1;
         const deletedSession = get().sessions.at(index);
 
         if (!deletedSession) return;
+
+        // Delete chat log from database
+        try {
+          const authSession = await getSession();
+          if (authSession?.user?.id) {
+            console.log(
+              "[Chat] Deleting chat log from database:",
+              deletedSession.id,
+            );
+            await fetch(`/api/chat-logs/${deletedSession.id}`, {
+              method: "DELETE",
+              headers: {
+                "user-id": authSession.user.id,
+              },
+            });
+            console.log("[Chat] Successfully deleted chat log from database");
+          }
+        } catch (e) {
+          console.error("[Chat] Failed to delete chat log from database:", e);
+        }
 
         const sessions = get().sessions.slice();
         sessions.splice(index, 1);
