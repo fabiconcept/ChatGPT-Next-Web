@@ -62,5 +62,5 @@ chatLogSchema.index({ userId: 1, createdAt: -1 });
 
 // Create the debug model
 export const DebugChatLog =
-  mongoose.models.DebugChatLog ||
+  mongoose.models.ChatLog ||
   mongoose.model("ChatLog", chatLogSchema, Collections.CHAT_LOGS);

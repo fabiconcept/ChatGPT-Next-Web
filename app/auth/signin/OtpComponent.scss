@@ -47,8 +47,8 @@
 
   &.otp-valid {
     input {
-    background-color: #ebeaea84;
-    border-color: #02b702;
+      background-color: #ebeaea84 !important;
+      border-color: #02b702 !important;
     }
   }
 }

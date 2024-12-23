@@ -29,6 +29,7 @@ import { ModelConfig, ModelType, useAppConfig } from "./config";
 import { useAccessStore } from "./access";
 import { collectModelsWithDefaultModel } from "../utils/model";
 import { createEmptyMask, Mask } from "./mask";
+import { getSession } from "next-auth/react";
 
 const localStorage = safeLocalStorage();
 
@@ -355,11 +356,11 @@ export const useChatStore = createPersistStore(
 
       onNewMessage(message: ChatMessage, targetSession: ChatSession) {
         get().updateTargetSession(targetSession, (session) => {
-          session.messages = session.messages.concat();
-          session.lastUpdate = Date.now();
+          session.messages = session.messages.concat(message);
         });
         get().updateStat(message, targetSession);
         get().summarizeSession(false, targetSession);
+        get().syncChatToServer(targetSession);
       },
 
       async onUserInput(content: string, attachImages?: string[]) {
@@ -430,7 +431,20 @@ export const useChatStore = createPersistStore(
             if (message) {
               botMessage.content = message;
               botMessage.date = new Date().toLocaleString();
-              get().onNewMessage(botMessage, session);
+              // Update the existing message instead of adding a new one
+              get().updateTargetSession(session, (session) => {
+                const lastIndex = session.messages.length - 1;
+                if (
+                  lastIndex >= 0 &&
+                  session.messages[lastIndex].id === botMessage.id
+                ) {
+                  session.messages[lastIndex] = { ...botMessage };
+                }
+              });
+              // Update stats and trigger summarization
+              get().updateStat(botMessage, session);
+              get().summarizeSession(false, session);
+              get().syncChatToServer(session);
             }
             ChatControllerPool.remove(session.id, botMessage.id);
           },
@@ -584,13 +598,17 @@ export const useChatStore = createPersistStore(
       updateMessage(
         sessionIndex: number,
         messageIndex: number,
-        updater: (message?: ChatMessage) => void,
+        updater: (message: ChatMessage) => void,
       ) {
         const sessions = get().sessions;
         const session = sessions.at(sessionIndex);
-        const messages = session?.messages;
-        updater(messages?.at(messageIndex));
-        set(() => ({ sessions }));
+        if (!session) return;
+
+        const message = session.messages.at(messageIndex);
+        if (!message) return;
+
+        updater(message);
+        get().syncChatToServer(session);
       },
 
       resetSession(session: ChatSession) {
@@ -764,7 +782,188 @@ export const useChatStore = createPersistStore(
           lastInput,
         });
       },
+
+      async syncChatToServer(session: ChatSession) {
+        console.log("[Chat] Starting syncChatToServer", {
+          sessionId: session.id,
+          messageCount: session.messages.length,
+          lastUpdate: new Date(session.lastUpdate).toISOString(),
+        });
+
+        try {
+          const authSession = await getSession();
+          console.log("[Chat] Auth session status:", {
+            hasSession: !!authSession,
+            userId: authSession?.user?.id,
+          });
+
+          if (!authSession?.user?.id) {
+            console.log("[Chat] No user session found, skipping sync");
+            return;
+          }
+
+          console.log("[Chat] Sending sync request to server");
+          const response = await fetch(`/api/chat-logs/${session.id}`, {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+              "user-id": authSession.user.id,
+            },
+            body: JSON.stringify({
+              messages: session.messages,
+              modelId: session.mask.modelConfig.model,
+              tokenUsage: session.mask.modelConfig.max_tokens,
+              cost: 0, // TODO: Calculate actual cost
+              updatedAt: new Date().toISOString(),
+            }),
+          });
+
+          console.log("[Chat] Server response:", {
+            status: response.status,
+            ok: response.ok,
+          });
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error("[Chat] Sync failed with server error:", {
+              status: response.status,
+              statusText: response.statusText,
+              error: errorText,
+            });
+            throw new Error(
+              `Failed to sync chat: ${response.status} ${response.statusText}\n${errorText}`,
+            );
+          }
+
+          const result = await response.json();
+          console.log("[Chat] Sync completed successfully:", result);
+        } catch (e) {
+          console.error("[Chat] Failed to sync chat log:", {
+            error: e instanceof Error ? e.message : e,
+            sessionId: session.id,
+            stack: e instanceof Error ? e.stack : undefined,
+          });
+        }
+      },
+
+      async loadChatsFromServer() {
+        console.log("[Chat] Starting loadChatsFromServer");
+
+        try {
+          const session = await getSession();
+          console.log("[Chat] Auth session status:", {
+            hasSession: !!session,
+            userId: session?.user?.id,
+          });
+
+          if (!session?.user?.id) {
+            console.log("[Chat] No authenticated user found, skipping load");
+            return;
+          }
+
+          console.log("[Chat] Sending load request to server");
+          const response = await fetch("/api/chat-logs", {
+            headers: {
+              "user-id": session.user.id,
+            },
+          });
+
+          console.log("[Chat] Server response:", {
+            status: response.status,
+            ok: response.ok,
+          });
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error("[Chat] Load failed with server error:", {
+              status: response.status,
+              statusText: response.statusText,
+              error: errorText,
+            });
+            throw new Error(
+              `Failed to load chats: ${response.status} ${response.statusText}\n${errorText}`,
+            );
+          }
+
+          const data = await response.json();
+          const serverChats = data.chatLogs;
+          console.log("[Chat] Load completed successfully:", {
+            chatCount: serverChats?.length ?? 0,
+            chats: serverChats?.map((chat: any) => ({
+              id: chat.chatId,
+              messageCount: chat.messages?.length,
+            })),
+          });
+
+          if (!serverChats || serverChats.length === 0) {
+            console.log("[Chat] No chats found on server");
+            return;
+          }
+
+          console.log("[Chat] Processing server chats");
+          // Convert server chats to local format
+          const serverSessions = serverChats.map((chat: any) => {
+            const session = {
+              id: chat.chatId,
+              topic: DEFAULT_TOPIC,
+              memoryPrompt: "",
+              messages: chat.messages.map((msg: any) => ({
+                ...msg,
+                date: new Date(msg.timestamp).toLocaleString(),
+              })),
+              stat: {
+                tokenCount: chat.tokenUsage.totalTokens,
+                wordCount: 0,
+                charCount: 0,
+              },
+              lastUpdate: new Date(chat.createdAt).getTime(),
+              lastSummarizeIndex: 0,
+              mask: createEmptyMask(),
+            };
+            console.log("[Chat] Processed chat:", {
+              id: session.id,
+              messageCount: session.messages.length,
+              lastUpdate: new Date(session.lastUpdate).toISOString(),
+            });
+            return session;
+          });
+
+          // Get current sessions and create a map for quick lookup
+          const currentSessions = get().sessions;
+          const sessionMap = new Map(currentSessions.map((s) => [s.id, s]));
+
+          // Merge server sessions with local sessions, preferring server data for duplicates
+          serverSessions.forEach((serverSession: ChatSession) => {
+            sessionMap.set(serverSession.id, serverSession);
+          });
+
+          // Convert map back to array and sort by lastUpdate
+          const mergedSessions = Array.from(sessionMap.values()).sort(
+            (a, b) => b.lastUpdate - a.lastUpdate,
+          );
+
+          console.log("[Chat] Updating store with merged chats:", {
+            totalSessions: mergedSessions.length,
+            fromServer: serverSessions.length,
+            fromLocal: currentSessions.length,
+          });
+
+          set(() => ({
+            sessions: mergedSessions,
+            currentSessionIndex: 0,
+          }));
+          console.log("[Chat] Store update complete");
+        } catch (e) {
+          console.error("[Chat] Failed to load chat logs:", {
+            error: e instanceof Error ? e.message : e,
+            stack: e instanceof Error ? e.stack : undefined,
+          });
+        }
+      },
     };
+
+    // Load chats when store is initialized
+    methods.loadChatsFromServer();
 
     return methods;
   },

@@ -34,20 +34,12 @@ const AIModel =
 
 // GET /api/configurations
 export async function GET() {
-  console.log("[API] GET /api/configurations - Starting request");
   try {
-    console.log("[API] Attempting database connection...");
     await connectDB();
-    console.log("[API] Database connected successfully");
 
     const configurations = await AIModel.find({ isActive: true });
-    console.log("[API] Found configurations:", configurations);
 
     if (!configurations || configurations.length === 0) {
-      console.log(
-        "[API] No active configurations found, creating default configuration",
-      );
-
       const defaultConfig = {
         modelType: "chat",
         version: "1.0",
@@ -73,7 +65,6 @@ export async function GET() {
       };
 
       const newConfig = await AIModel.create(defaultConfig);
-      console.log("[API] Created default configuration:", newConfig);
 
       return NextResponse.json([newConfig]);
     }
@@ -144,10 +135,8 @@ export async function POST(req: NextRequest) {
 
 // PUT /api/configurations
 export async function PUT(req: NextRequest) {
-  console.log("[API] PUT /api/configurations - Starting request");
   try {
     const body = await req.json();
-    console.log("[API] Request body:", body);
 
     const {
       modelType,
@@ -159,25 +148,13 @@ export async function PUT(req: NextRequest) {
     } = body;
 
     if (!modelType || !version) {
-      console.log("[API] Missing required fields:", { modelType, version });
       return NextResponse.json(
         { error: "Model type and version are required" },
         { status: 400 },
       );
     }
 
-    console.log("[API] Attempting database connection...");
     await connectDB();
-    console.log("[API] Database connected successfully");
-
-    console.log("[API] Attempting to update configuration:", {
-      modelType,
-      version,
-      model,
-      providerName,
-      defaultSettings,
-      isActive,
-    });
 
     const updatedConfiguration = await AIModel.findOneAndUpdate(
       { modelType, version },
@@ -201,17 +178,12 @@ export async function PUT(req: NextRequest) {
     );
 
     if (!updatedConfiguration) {
-      console.log("[API] Configuration not found for update");
       return NextResponse.json(
         { error: "Configuration not found" },
         { status: 404 },
       );
     }
 
-    console.log(
-      "[API] Configuration updated successfully:",
-      updatedConfiguration,
-    );
     return NextResponse.json(updatedConfiguration);
   } catch (error) {
     console.error("[API] Error details:", {

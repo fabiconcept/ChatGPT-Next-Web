@@ -134,36 +134,24 @@ const userSubscriptionSchema = new mongoose.Schema<IUserSubscription>({
 
 // Create and export the models
 export const User =
-  mongoose.models.User ||
-  mongoose.model(Collections.USERS, userSchema, Collections.USERS);
+  mongoose.models[Collections.USERS] ||
+  mongoose.model(Collections.USERS, userSchema);
 
 export const UserSettings =
-  mongoose.models.UserSettings ||
-  mongoose.model(
-    Collections.USER_SETTINGS,
-    userSettingsSchema,
-    Collections.USER_SETTINGS,
-  );
+  mongoose.models[Collections.USER_SETTINGS] ||
+  mongoose.model(Collections.USER_SETTINGS, userSettingsSchema);
 
 export const AIModel =
-  mongoose.models.AIModel ||
-  mongoose.model(Collections.AI_MODELS, aiModelSchema, Collections.AI_MODELS);
+  mongoose.models[Collections.AI_MODELS] ||
+  mongoose.model(Collections.AI_MODELS, aiModelSchema);
 
 export const Membership =
-  mongoose.models.Membership ||
-  mongoose.model(
-    Collections.MEMBERSHIPS,
-    membershipSchema,
-    Collections.MEMBERSHIPS,
-  );
+  mongoose.models[Collections.MEMBERSHIPS] ||
+  mongoose.model(Collections.MEMBERSHIPS, membershipSchema);
 
 export const UserSubscription =
-  mongoose.models.UserSubscription ||
-  mongoose.model(
-    Collections.USER_SUBSCRIPTIONS,
-    userSubscriptionSchema,
-    Collections.USER_SUBSCRIPTIONS,
-  );
+  mongoose.models[Collections.USER_SUBSCRIPTIONS] ||
+  mongoose.model(Collections.USER_SUBSCRIPTIONS, userSubscriptionSchema);
 
 // Export types
 export type IUser_models = mongoose.InferSchemaType<typeof userSchema>;

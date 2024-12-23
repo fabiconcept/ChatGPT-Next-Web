@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { showToast } from "./components/ui-lib";
 import Locale from "./locales";
-import { RequestMessage } from "./client/api";
+import { RequestMessage, MultimodalContent } from "./client/api";
 import { ServiceProvider } from "./constant";
 // import { fetch as tauriFetch, ResponseType } from "@tauri-apps/api/http";
 import { fetch as tauriStreamFetch } from "./utils/stream";
@@ -230,11 +230,15 @@ export function getMessageTextContent(message: RequestMessage) {
   if (typeof message.content === "string") {
     return message.content;
   }
-  for (const c of message.content) {
-    if (c.type === "text") {
-      return c.text ?? "";
+
+  if (Array.isArray(message.content)) {
+    for (const c of message.content) {
+      if (c.type === "text") {
+        return c.text ?? "";
+      }
     }
   }
+
   return "";
 }
 
@@ -426,4 +430,12 @@ export function semverCompare(a: string, b: string) {
     sensitivity: "case",
     caseFirst: "upper",
   });
+}
+
+export function getContentLength(
+  content: string | MultimodalContent[] | undefined,
+): number {
+  if (!content) return 0;
+  if (typeof content === "string") return content.length;
+  return content.length;
 }
