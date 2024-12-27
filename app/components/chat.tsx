@@ -851,6 +851,7 @@ export function EditMessageModal(props: { onClose: () => void }) {
                 chatStore.updateTargetSession(
                   session,
                   (session) => (session.topic = e.currentTarget.value),
+                  true,
                 )
               }
             ></input>

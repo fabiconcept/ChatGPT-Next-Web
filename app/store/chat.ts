@@ -873,12 +873,15 @@ export const useChatStore = createPersistStore(
       updateTargetSession(
         targetSession: ChatSession,
         updater: (session: ChatSession) => void,
+        isInput?: boolean,
       ) {
         const sessions = get().sessions;
         const index = sessions.findIndex((s) => s.id === targetSession.id);
         if (index !== -1) {
           updater(sessions[index]);
           set(() => ({ sessions }));
+
+          if (isInput) return;
           // Sync changes to server after updating session
           get().syncChatToServer(sessions[index]);
         }
