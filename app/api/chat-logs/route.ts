@@ -162,6 +162,55 @@ export async function POST(req: NextRequest) {
   }
 }
 
+// PATCH /api/chat-logs/:chatId
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: { chatId: string } },
+) {
+  console.log("[API] PATCH /api/chat-logs/:chatId - Starting request");
+  try {
+    const userId = req.headers.get("user-id");
+    if (!userId) {
+      return NextResponse.json(
+        { error: "Unauthorized: No user ID provided" },
+        { status: 401 },
+      );
+    }
+
+    const chatId = params.chatId;
+    const body = await req.json();
+
+    console.log("[API] Attempting database connection...");
+    await connectDB();
+    console.log("[API] Database connected successfully");
+
+    const chatLog = await DebugChatLog.findOne({ chatId, userId });
+    if (!chatLog) {
+      return NextResponse.json(
+        { error: "Chat log not found", code: "CHAT_NOT_FOUND" },
+        { status: 404 },
+      );
+    }
+
+    // Update chat log fields
+    Object.assign(chatLog, {
+      ...body,
+      updatedAt: new Date("2024-12-27T07:20:50+01:00"),
+    });
+
+    await chatLog.save();
+    console.log(`[API] Chat log updated successfully for user ${userId}`);
+
+    return NextResponse.json(chatLog);
+  } catch (error) {
+    console.error("[API] Error updating chat log:", error);
+    return NextResponse.json(
+      { error: "Failed to update chat log" },
+      { status: 500 },
+    );
+  }
+}
+
 // DELETE /api/chat-logs (delete all chat logs for a user)
 export async function DELETE(req: NextRequest) {
   console.log("[API] DELETE /api/chat-logs - Starting request");

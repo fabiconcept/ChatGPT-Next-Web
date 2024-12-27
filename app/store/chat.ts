@@ -299,6 +299,7 @@ export const useChatStore = createPersistStore(
               body: JSON.stringify({
                 chatId: session.id,
                 modelId: session.mask.modelConfig.model,
+                topic: session.topic,
                 messages: session.messages,
                 tokenUsage: {
                   promptTokens: session.stat.tokenCount,
@@ -312,6 +313,7 @@ export const useChatStore = createPersistStore(
             console.log("[Chat] Created new chat log in database", {
               chatId: session.id,
               modelId: session.mask.modelConfig.model,
+              topic: session.topic,
               messages: session.messages,
               tokenUsage: {
                 promptTokens: session.stat.tokenCount,
@@ -418,6 +420,7 @@ export const useChatStore = createPersistStore(
                     body: JSON.stringify({
                       chatId: deletedSession.id,
                       modelId: deletedSession.mask.modelConfig.model,
+                      topic: deletedSession.topic,
                       messages: deletedSession.messages,
                       tokenUsage: {
                         promptTokens: deletedSession.stat.tokenCount,
@@ -911,6 +914,67 @@ export const useChatStore = createPersistStore(
           }
 
           console.log("[Chat] Sending sync request to server");
+
+          // First check if the session exists
+          const checkResponse = await fetch(`/api/chat-logs/${session.id}`, {
+            method: "GET",
+            headers: {
+              "user-id": authSession.user.id,
+            },
+          });
+
+          console.log("[Chat] Session check response:", {
+            status: checkResponse.status,
+            ok: checkResponse.ok,
+          });
+
+          if (checkResponse.status === 404) {
+            // Session doesn't exist, create it
+            console.log("[Chat] Session not found, creating new chat log");
+            const createResponse = await fetch("/api/chat-logs", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "user-id": authSession.user.id,
+              },
+              body: JSON.stringify({
+                chatId: session.id,
+                messages: session.messages,
+                modelId: session.mask.modelConfig.model,
+                topic: session.topic,
+                tokenUsage: session.mask.modelConfig.max_tokens,
+                cost: 0,
+                createdAt: new Date().toISOString(),
+              }),
+            });
+
+            if (!createResponse.ok) {
+              const errorText = await createResponse.text();
+              console.error("[Chat] Failed to create new chat log:", {
+                status: createResponse.status,
+                statusText: createResponse.statusText,
+                error: errorText,
+              });
+              throw new Error(
+                `Failed to create chat: ${createResponse.status} ${createResponse.statusText}\n${errorText}`,
+              );
+            }
+
+            console.log("[Chat] New chat log created successfully");
+            return;
+          } else if (!checkResponse.ok) {
+            const errorText = await checkResponse.text();
+            console.error("[Chat] Failed to check session existence:", {
+              status: checkResponse.status,
+              statusText: checkResponse.statusText,
+              error: errorText,
+            });
+            throw new Error(
+              `Failed to check session: ${checkResponse.status} ${checkResponse.statusText}\n${errorText}`,
+            );
+          }
+
+          // Session exists, proceed with patch
           const response = await fetch(`/api/chat-logs/${session.id}`, {
             method: "PATCH",
             headers: {
@@ -920,6 +984,7 @@ export const useChatStore = createPersistStore(
             body: JSON.stringify({
               messages: session.messages,
               modelId: session.mask.modelConfig.model,
+              topic: session.topic,
               tokenUsage: session.mask.modelConfig.max_tokens,
               cost: 0, // TODO: Calculate actual cost
               updatedAt: new Date().toISOString(),
@@ -965,7 +1030,13 @@ export const useChatStore = createPersistStore(
           });
 
           if (!session?.user?.id) {
-            console.log("[Chat] No authenticated user found, skipping load");
+            console.log(
+              "[Chat] No authenticated user found, using default session",
+            );
+            set(() => ({
+              sessions: [createEmptySession()],
+              currentSessionIndex: 0,
+            }));
             return;
           }
 
@@ -1003,8 +1074,15 @@ export const useChatStore = createPersistStore(
             })),
           });
 
+          // If no server chats, create a default session
           if (!serverChats || serverChats.length === 0) {
-            console.log("[Chat] No chats found on server");
+            console.log(
+              "[Chat] No chats found on server, using default session",
+            );
+            set(() => ({
+              sessions: [createEmptySession()],
+              currentSessionIndex: 0,
+            }));
             return;
           }
 
@@ -1013,7 +1091,7 @@ export const useChatStore = createPersistStore(
           const serverSessions = serverChats.map((chat: any) => {
             const session = {
               id: chat.chatId,
-              topic: DEFAULT_TOPIC,
+              topic: chat.topic || DEFAULT_TOPIC,
               memoryPrompt: "",
               messages: chat.messages.map((msg: any) => ({
                 ...msg,
@@ -1036,36 +1114,22 @@ export const useChatStore = createPersistStore(
             return session;
           });
 
-          // Get current sessions and create a map for quick lookup
-          const currentSessions = get().sessions;
-          const sessionMap = new Map(currentSessions.map((s) => [s.id, s]));
-
-          // Merge server sessions with local sessions, preferring server data for duplicates
-          serverSessions.forEach((serverSession: ChatSession) => {
-            sessionMap.set(serverSession.id, serverSession);
-          });
-
-          // Convert map back to array and sort by lastUpdate
-          const mergedSessions = Array.from(sessionMap.values()).sort(
-            (a, b) => b.lastUpdate - a.lastUpdate,
-          );
-
-          console.log("[Chat] Updating store with merged chats:", {
-            totalSessions: mergedSessions.length,
-            fromServer: serverSessions.length,
-            fromLocal: currentSessions.length,
-          });
-
+          // Set the sessions directly from the server data
           set(() => ({
-            sessions: mergedSessions,
+            sessions: serverSessions,
             currentSessionIndex: 0,
           }));
-          console.log("[Chat] Store update complete");
+          console.log("[Chat] Successfully loaded sessions from server");
         } catch (e) {
-          console.error("[Chat] Failed to load chat logs:", {
+          console.error("[Chat] Failed to load chats:", {
             error: e instanceof Error ? e.message : e,
             stack: e instanceof Error ? e.stack : undefined,
           });
+          // On error, use a default session
+          set(() => ({
+            sessions: [createEmptySession()],
+            currentSessionIndex: 0,
+          }));
         }
       },
     };

@@ -7,6 +7,7 @@ const chatLogSchema = new mongoose.Schema(
     chatId: { type: String, required: true, unique: true },
     userId: { type: String, required: true },
     modelId: { type: String, required: true },
+    topic: { type: String, required: true },
     messages: [
       {
         id: { type: String, required: true },
