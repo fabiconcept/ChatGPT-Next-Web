@@ -125,6 +125,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
+    const chatId = body.chatId || nanoid();
 
     console.log("[API] Attempting database connection...");
     await connectDB();
@@ -132,11 +133,38 @@ export async function POST(req: NextRequest) {
 
     console.log("Payload:", JSON.stringify(body, null, 2));
 
+    // Check if chat log with this chatId already exists
+    const existingChatLog = await DebugChatLog.findOne({
+      chatId,
+      userId,
+    });
+
+    if (existingChatLog) {
+      console.log(
+        `[API] Chat log with chatId ${chatId} already exists, updating instead`,
+      );
+
+      // Update existing chat log
+      Object.assign(existingChatLog, {
+        ...body,
+        updatedAt: new Date(),
+      });
+
+      if (existingChatLog.id) {
+        delete existingChatLog.id;
+      }
+
+      await existingChatLog.save();
+      return NextResponse.json(existingChatLog);
+    }
+
+    // Create new chat log if it doesn't exist
     const chatLog = new DebugChatLog({
       ...body,
-      chatId: body.chatId || nanoid(), // Use the frontend's id as chatId, or generate new one
+      chatId,
       userId,
       createdAt: new Date(),
+      updatedAt: new Date(),
     });
 
     console.log(
@@ -192,11 +220,19 @@ export async function PATCH(
       );
     }
 
+    // Ensure chatId remains unchanged
+    delete body.chatId;
+
     // Update chat log fields
     Object.assign(chatLog, {
       ...body,
-      updatedAt: new Date("2024-12-27T07:20:50+01:00"),
+      updatedAt: new Date(),
     });
+
+    // Remove id field if it exists
+    if (chatLog.id) {
+      delete chatLog.id;
+    }
 
     await chatLog.save();
     console.log(`[API] Chat log updated successfully for user ${userId}`);

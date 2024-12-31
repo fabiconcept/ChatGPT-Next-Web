@@ -84,6 +84,7 @@ export interface ChatSession {
   clearContextIndex?: number;
 
   mask: Mask;
+  version: number; // Add version tracking
 }
 
 export const DEFAULT_TOPIC = Locale.Store.DefaultTopic;
@@ -107,6 +108,7 @@ function createEmptySession(): ChatSession {
     lastSummarizeIndex: 0,
 
     mask: createEmptyMask(),
+    version: 1, // Initialize version to 1
   };
 }
 
@@ -307,6 +309,7 @@ export const useChatStore = createPersistStore(
                   totalTokens: session.stat.tokenCount,
                 },
                 cost: 0,
+                version: session.version,
               }),
             });
 
@@ -321,6 +324,7 @@ export const useChatStore = createPersistStore(
                 totalTokens: session.stat.tokenCount,
               },
               cost: 0,
+              version: session.version,
             });
           }
         } catch (e) {
@@ -428,6 +432,7 @@ export const useChatStore = createPersistStore(
                         totalTokens: deletedSession.stat.tokenCount,
                       },
                       cost: 0,
+                      version: deletedSession.version,
                     }),
                   });
                   console.log(
@@ -887,9 +892,34 @@ export const useChatStore = createPersistStore(
         }
       },
       async clearAllData() {
-        await indexedDBStorage.clear();
-        localStorage.clear();
-        location.reload();
+        try {
+          // Clear server data first
+          const authSession = await getSession();
+          if (authSession?.user?.id) {
+            await fetch("/api/chat-logs", {
+              method: "DELETE",
+              headers: {
+                "user-id": authSession.user.id,
+              },
+            });
+          }
+
+          // Reset the state to default values
+          set(() => ({
+            ...DEFAULT_CHAT_STATE,
+            sessions: [createEmptySession()],
+          }));
+
+          // Clear local storage
+          await indexedDBStorage.clear();
+          localStorage.clear();
+
+          // Reload page to start fresh
+          location.reload();
+        } catch (error) {
+          console.error("[Chat] Failed to clear all data:", error);
+          throw error;
+        }
       },
       setLastInput(lastInput: string) {
         set({
@@ -942,12 +972,17 @@ export const useChatStore = createPersistStore(
               },
               body: JSON.stringify({
                 chatId: session.id,
-                messages: session.messages,
                 modelId: session.mask.modelConfig.model,
                 topic: session.topic,
-                tokenUsage: session.mask.modelConfig.max_tokens,
+                messages: session.messages,
+                tokenUsage: {
+                  promptTokens: session.stat.tokenCount,
+                  completionTokens: 0,
+                  totalTokens: session.stat.tokenCount,
+                },
                 cost: 0,
-                createdAt: new Date().toISOString(),
+                version: session.version,
+                lastUpdate: session.lastUpdate,
               }),
             });
 
@@ -990,7 +1025,8 @@ export const useChatStore = createPersistStore(
               topic: session.topic,
               tokenUsage: session.mask.modelConfig.max_tokens,
               cost: 0, // TODO: Calculate actual cost
-              updatedAt: new Date().toISOString(),
+              version: session.version,
+              lastUpdate: session.lastUpdate,
             }),
           });
 
@@ -1090,39 +1126,33 @@ export const useChatStore = createPersistStore(
           }
 
           console.log("[Chat] Processing server chats");
-          // Convert server chats to local format
-          const serverSessions = serverChats.map((chat: any) => {
-            const session = {
-              id: chat.chatId,
-              topic: chat.topic || DEFAULT_TOPIC,
-              memoryPrompt: "",
-              messages: chat.messages.map((msg: any) => ({
-                ...msg,
-                date: new Date(msg.timestamp).toLocaleString(),
-              })),
-              stat: {
-                tokenCount: chat.tokenUsage.totalTokens,
-                wordCount: 0,
-                charCount: 0,
-              },
-              lastUpdate: new Date(chat.createdAt).getTime(),
-              lastSummarizeIndex: 0,
-              mask: createEmptyMask(),
-            };
-            console.log("[Chat] Processed chat:", {
-              id: session.id,
-              messageCount: session.messages.length,
-              lastUpdate: new Date(session.lastUpdate).toISOString(),
-            });
-            return session;
-          });
 
-          // Set the sessions directly from the server data
+          // Convert server chats to local format
+          const serverSessions = serverChats.map((chat: any) => ({
+            id: chat.chatId,
+            topic: chat.topic || DEFAULT_TOPIC,
+            memoryPrompt: "",
+            messages: chat.messages.map((msg: any) => ({
+              ...msg,
+              date: new Date(msg.timestamp).toLocaleString(),
+            })),
+            stat: {
+              tokenCount: chat.tokenUsage.totalTokens,
+              wordCount: 0,
+              charCount: 0,
+            },
+            lastUpdate: new Date(chat.createdAt).getTime(),
+            lastSummarizeIndex: 0,
+            mask: createEmptyMask(),
+            version: chat.version || 1,
+          }));
+
+          // Use only server sessions
           set(() => ({
             sessions: serverSessions,
             currentSessionIndex: 0,
           }));
-          console.log("[Chat] Successfully loaded sessions from server");
+          console.log("[Chat] Successfully loaded server sessions");
         } catch (e) {
           console.error("[Chat] Failed to load chats:", {
             error: e instanceof Error ? e.message : e,
@@ -1134,6 +1164,15 @@ export const useChatStore = createPersistStore(
             currentSessionIndex: 0,
           }));
         }
+      },
+
+      // Remove merging since we're only using server sessions
+      mergeSessions(
+        localSessions: ChatSession[],
+        serverSessions: ChatSession[],
+      ): ChatSession[] {
+        // Simply return server sessions sorted by lastUpdate
+        return serverSessions.sort((a, b) => b.lastUpdate - a.lastUpdate);
       },
     };
 
